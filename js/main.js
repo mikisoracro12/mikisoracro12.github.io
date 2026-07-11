@@ -6,6 +6,12 @@
 (function () {
   'use strict';
 
+  const EMAILJS_CONFIG = {
+    publicKey: 'fTKovSVvK1X1AArZG',
+    serviceId: 'service_ybe7enq',
+    templateId: 'template_8sjo3b8'
+  };
+
   /* ------------------------------------------
      DOM Elements
      ------------------------------------------ */
@@ -153,10 +159,12 @@
   }
 
   /* ------------------------------------------
-     Contact Form Handling
+     Contact Form Handling (EmailJS)
      ------------------------------------------ */
   function initContactForm() {
-    if (!contactForm) return;
+    if (!contactForm || typeof emailjs === 'undefined') return;
+
+    emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
 
     contactForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -178,16 +186,36 @@
       }
 
       const submitBtn = contactForm.querySelector('button[type="submit"]');
-      const originalText = submitBtn.querySelector('span').textContent;
-      submitBtn.querySelector('span').textContent = 'Sending...';
+      const btnLabel = submitBtn.querySelector('span');
+      const originalText = btnLabel.textContent;
+
+      btnLabel.textContent = 'Sending...';
       submitBtn.disabled = true;
 
-      setTimeout(() => {
-        showFormStatus('Message sent successfully! I\'ll get back to you soon.', 'success');
-        contactForm.reset();
-        submitBtn.querySelector('span').textContent = originalText;
-        submitBtn.disabled = false;
-      }, 1500);
+      const templateParams = {
+        name,
+        from_name: name,
+        email,
+        from_email: email,
+        reply_to: email,
+        subject,
+        message
+      };
+
+      emailjs
+        .send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, templateParams)
+        .then(() => {
+          showFormStatus('Message sent successfully! I\'ll get back to you soon.', 'success');
+          contactForm.reset();
+        })
+        .catch((error) => {
+          console.error('EmailJS error:', error);
+          showFormStatus('Failed to send message. Please try again or email me directly.', 'error');
+        })
+        .finally(() => {
+          btnLabel.textContent = originalText;
+          submitBtn.disabled = false;
+        });
     });
   }
 
